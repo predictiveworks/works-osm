@@ -67,7 +67,7 @@ object BeatSession {
      * STEP #2: Leverage the configuration to create
      * an Apache Spark Context
      */
-    val sc = new SparkContext()(conf)
+    val sc = new SparkContext(conf)
 
     /*
      * STEP #3: Leverage the Apache Spark Context and

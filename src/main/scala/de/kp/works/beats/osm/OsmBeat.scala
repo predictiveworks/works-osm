@@ -26,7 +26,6 @@ object OsmBeat extends OsmLogging {
   val programName: String = "OsmBeat"
   val programDesc: String = "OSM data extractor."
 
-  private val config = OsmConf.getInstance
   private val line = s"------------------------------------------------"
 
   def main(args:Array[String]):Unit = {

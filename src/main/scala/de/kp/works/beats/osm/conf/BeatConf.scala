@@ -108,11 +108,16 @@ abstract class BeatConf {
    * of the OSM Beat
    */
   def getLoggingCfg: Config = getCfg("logging")
- /**
+  /**
    * This method provides the SSL configuration of the
    * OSM Beat (HTTP Server)
    */
   def getSecurityCfg: Config = getCfg("security")
+  /**
+   * This method provides the configuration of the
+   * OSM source files
+   */
+  def getSourceCfg: Config = getCfg("source")
 
   def isInit: Boolean = {
     cfg.isDefined

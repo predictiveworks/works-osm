@@ -19,34 +19,10 @@ package de.kp.works.beats.osm
  *
  */
 
-import ch.qos.logback.classic.Logger
-import de.kp.works.beats.osm.conf.OsmConf
+object OsmEntities extends Enumeration {
 
-trait OsmLogging {
+  type OsmEntity = Value
 
-  val config: OsmConf = OsmConf.getInstance
-  if (!config.isInit) config.init()
-
-  private val loggerName = "OsmLogger"
-  private val loggerPath = config.getLogFolder
-  /*
-   * Initialize the [BeatLogger]; this is the first
-   * step to retrieve the [Logger]
-   */
-  BeatLogger.getInstance(loggerName, loggerPath)
-  val logger: Logger = BeatLogger.getLogger
-
-  def info(message: String): Unit = {
-    logger.info(s"$message")
-  }
-
-  def warn(message: String): Unit = {
-    logger.warn(s"$message")
-
-  }
-
-  def error(message: String): Unit = {
-    logger.error(s"$message")
-  }
+  val BIN:OsmEntity = Value(1, "BIN")
 
 }

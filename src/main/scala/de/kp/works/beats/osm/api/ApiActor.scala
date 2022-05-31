@@ -31,13 +31,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson._
 import com.typesafe.config.Config
+import de.kp.works.beats.osm.OsmLogging
 import de.kp.works.beats.osm.conf.BeatConf
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.util.Try
 
-abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
+abstract class ApiActor extends Actor with OsmLogging {
 
   import ApiActor._
 
@@ -106,7 +107,7 @@ abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
       case _: Exception                => Escalate
     }
 
-  def getLogger:Logger
+  def getLogger:Logger = logger
 
   override def receive: Receive = {
 
@@ -167,6 +168,26 @@ abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
         getLogger.error(t.getLocalizedMessage)
         null
     }
+
+  }
+
+  def buildErrorResp(message:String):JsonObject = {
+
+    val json = new JsonObject
+    json.addProperty("status", "failed")
+    json.addProperty("message", message)
+
+    json
+
+  }
+
+  def buildSuccessResp(message:String):JsonObject = {
+
+    val json = new JsonObject
+    json.addProperty("status", "success")
+    json.addProperty("message", message)
+
+    json
 
   }
 

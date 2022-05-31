@@ -53,11 +53,7 @@ case class BeatAttr(
  */
 case class BeatDot(time:Long, value:Double)
 
-/**
- * A unique definition of a BeatChannel
- * request
- */
-case class BeatRequest(action:BeatActions.Value, sensor:BeatSensor)
+case class BeatJobReq(entity:String)
 /**
  * Unique definition of an OSM sensor and its
  * mapping to the e.g. FIWARE (output) channel.

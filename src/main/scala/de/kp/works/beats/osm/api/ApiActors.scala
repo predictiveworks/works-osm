@@ -19,22 +19,78 @@ package de.kp.works.beats.osm.api
  *
  */
 
+import akka.actor.{Actor, Props}
 import akka.http.scaladsl.model.HttpRequest
-import ch.qos.logback.classic.Logger
-import de.kp.works.beats.osm.conf.BeatConf
+import akka.routing.RoundRobinPool
+import de.kp.works.beats.osm.OsmEntities.OsmEntity
+import de.kp.works.beats.osm.{BeatJobReq, BeatMessages, OsmEntities, OsmLogging}
 
-class GetActor[C <: BeatConf](config:C) extends ApiActor(config) {
+class GetActor extends ApiActor {
 
   override def execute(request: HttpRequest): String = ???
-
-  override def getLogger: Logger = ???
 
 }
 
-class JobActor[C <: BeatConf](config:C) extends ApiActor(config) {
+class JobActor extends ApiActor {
+  /**
+   * OSM extraction tasks are executed by a
+   * round robin tool of worker actors
+   */
+  private val jobWorker  =
+    system
+      .actorOf(RoundRobinPool(instances)
+        .withResizer(resizer)
+        .props(Props(new JobWorker())), "JobWorker")
 
-  override def execute(request: HttpRequest): String = ???
+  override def execute(request: HttpRequest): String = {
+    /*
+     * Validate whether this request returns
+     * a valid JSON object
+     */
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      val message = BeatMessages.invalidJson()
 
-  override def getLogger: Logger = ???
+      warn(message)
+      return buildErrorResp(message).toString
 
+    }
+    /*
+     * Validate whether the requestor provided
+     * a pre-defined OSM entity
+     */
+    val req = mapper.readValue(json.toString, classOf[BeatJobReq])
+    val entity:Option[OsmEntity] = {
+      try {
+        Some(OsmEntities.withName(req.entity))
+      } catch {
+        case _:Throwable => None
+      }
+    }
+
+    if (entity.isEmpty) {
+      val message = BeatMessages.invalidEntity()
+
+      warn(message)
+      return buildErrorResp(message).toString
+
+    }
+
+    /* Send request to [JobWorker] */
+    jobWorker ! req
+
+    val message = BeatMessages.extractStarted()
+    buildSuccessResp(message).toString
+
+  }
+
+}
+
+class JobWorker extends Actor with OsmLogging {
+
+  override def receive: Receive = {
+
+    case request: BeatJobReq =>
+
+  }
 }

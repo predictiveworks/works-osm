@@ -21,6 +21,7 @@ package de.kp.works.beats.osm.extract
 
 import com.google.gson.JsonObject
 import de.kp.works.beats.osm.extract.functions.query_match
+import de.kp.works.beats.osm.h3.H3Utils
 import org.apache.spark.sql.functions.{col, struct, udf}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
@@ -33,6 +34,8 @@ import scala.collection.mutable
  * is supported by the OsmBeat
  */
 class OsmBins(session:SparkSession) extends OsmExtract(session) {
+
+  private val H3_RESOLUTION = 7
 
   def build:DataFrame = {
     /*
@@ -110,11 +113,19 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
       attributes
     })
 
-    val cols = Seq(ID, LATITUDE,LONGITUDE, TAGS)
-    val selCols =cols.map(col)
+    val cols = Seq(ID, LATITUDE, LONGITUDE, H3, TAGS)
+    val selCols = cols.map(col)
 
     bins = bins
-      .select(selCols:_*)
+      /*
+       * Assign H3 Index to geospatial coordinate
+       * to facilitate geo search and more
+       */
+      .withColumn(H3, H3Utils.pointToH3(H3_RESOLUTION)(col(LATITUDE), col(LONGITUDE)))
+      /*
+       * Transform metadata (tags) into unified
+       * representation
+       */
       .withColumn(TAGS, attributes_udf(materials)(col(TAGS)))
 
     /*
@@ -138,7 +149,13 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
 
       json.add("longitude", lon)
 
-      val tags = row.getAs[Map[String,Int]](3)
+      val h3 = new JsonObject
+      h3.addProperty("type", "Long")
+      h3.addProperty("value", row.getLong(3))
+
+      json.add("index", h3)
+
+      val tags = row.getAs[Map[String,Int]](4)
       tags.foreach{case(k,v) =>
         val tag = new JsonObject
         tag.addProperty("type", "Integer")
@@ -155,6 +172,7 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
      * representation; the raw columns are finally removed
      */
     bins = bins
+      .select(selCols:_*)
       .withColumn(JSON, json_def(struct(selCols: _*)))
       .drop(cols:_*)
 

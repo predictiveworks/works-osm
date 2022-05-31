@@ -26,6 +26,7 @@ abstract class OsmExtract(session:SparkSession) extends OsmLogging {
 
   private val sourceCfg = config.getSourceCfg
 
+  protected val H3: String        = "h3"
   protected val ID: String        = "id"
   protected val JSON:String       = "json"
   protected val LATITUDE: String  = "latitude"

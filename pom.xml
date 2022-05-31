@@ -22,6 +22,7 @@
         <guava.version>20.0</guava.version>
         <logback.version>1.2.6</logback.version>
         <spark.version>2.4.3</spark.version>
+        <uber.version>3.7.0</uber.version>
         <!--
         The Scala version that has been used for testing
         in 2.11.12
@@ -76,6 +77,18 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
+        </dependency>
+
+        <!-- UBER H3 INDEXING SYSTEM
+
+        H3: Uber's Hierarchical hexagonal geospatial
+                indexing system
+         -->
+
+        <dependency>
+            <groupId>com.uber</groupId>
+            <artifactId>h3</artifactId>
+            <version>${uber.version}</version>
         </dependency>
 
         <!-- LOGBACK

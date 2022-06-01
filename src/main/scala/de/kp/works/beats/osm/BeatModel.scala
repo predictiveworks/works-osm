@@ -21,16 +21,6 @@ package de.kp.works.beats.osm
 
 import com.google.gson.JsonObject
 
-object BeatActions extends Enumeration {
-  type BeatAction = Value
-
-  val READ: BeatActions.Value    = Value(1, "read")
-  val WRITE: BeatActions.Value   = Value(2, "write")
-  val CREATE: BeatActions.Value  = Value(3, "create")
-  val UPDATE: BeatActions.Value  = Value(4, "update")
-  val DELETE: BeatActions.Value  = Value(5, "delete")
-}
-
 /**
  * Unique definition of a Beat attribute
  */
@@ -53,7 +43,7 @@ case class BeatAttr(
  */
 case class BeatDot(time:Long, value:Double)
 
-case class BeatJobReq(entity:String)
+case class BeatJobReq(jid:String, entity:String)
 /**
  * Unique definition of an OSM sensor and its
  * mapping to the e.g. FIWARE (output) channel.
@@ -111,14 +101,6 @@ case class BeatSensor(
     json
 
   }
-}
-
-object BeatTasks extends Enumeration {
-  type BeatTask = Value
-
-  val ANOMALY: BeatTasks.Value  = Value(1, "anomaly")
-  val FORECAST: BeatTasks.Value = Value(2, "forecast")
-
 }
 
 object BeatStatuses extends Enumeration {

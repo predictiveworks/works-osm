@@ -20,12 +20,30 @@ package de.kp.works.beats.osm.extract
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.osm.{BeatJob, BeatJobs}
 import de.kp.works.beats.osm.extract.functions.query_match
 import de.kp.works.beats.osm.h3.H3Utils
 import org.apache.spark.sql.functions.{col, struct, udf}
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.sql.{BeatSession, DataFrame, Row, SparkSession}
 
 import scala.collection.mutable
+
+object OsmBinsApi {
+
+  private val session = BeatSession.getSession
+  private var instance:Option[OsmBins] = None
+
+  def getInstance:OsmBins = {
+
+    if (instance.isEmpty)
+      instance = Some(new OsmBins(session))
+
+    instance.get
+
+  }
+
+}
+
 /**
  * [OsmBins] is responsible for extracting waste bins
  * from the configured OSM dataset.
@@ -36,6 +54,24 @@ import scala.collection.mutable
 class OsmBins(session:SparkSession) extends OsmExtract(session) {
 
   private val H3_RESOLUTION = 7
+
+  def extract(job:BeatJob):Unit = {
+    /*
+     * STEP #1: Register the provided extraction
+     * job to support job related get requests
+     */
+    BeatJobs.register(job)
+    /*
+     * STEP #2: Retrieve OSM waste bins from
+     * the specified OSM dataset
+     */
+    val dataframe = build
+    /*
+     * STEP #3: Send extracted dataframe to
+     * the configured output channels
+     */
+    // TODO
+  }
 
   def build:DataFrame = {
     /*

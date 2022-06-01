@@ -23,7 +23,8 @@ import akka.actor.{Actor, Props}
 import akka.http.scaladsl.model.HttpRequest
 import akka.routing.RoundRobinPool
 import de.kp.works.beats.osm.OsmEntities.OsmEntity
-import de.kp.works.beats.osm.{BeatJobReq, BeatMessages, OsmEntities, OsmLogging}
+import de.kp.works.beats.osm.extract.OsmBinsApi
+import de.kp.works.beats.osm.{BeatJob, BeatJobReq, BeatMessages, BeatStatuses, OsmEntities, OsmLogging}
 
 class GetActor extends ApiActor {
 
@@ -90,7 +91,30 @@ class JobWorker extends Actor with OsmLogging {
 
   override def receive: Receive = {
 
-    case request: BeatJobReq =>
+    case req: BeatJobReq =>
+      /*
+       * Build and register extraction job
+       */
+      val now = System.currentTimeMillis()
+      val job = BeatJob(
+        id        = req.jid,
+        entity    = req.entity,
+        createdAt = now,
+        updatedAt = 0L,
+        status    = BeatStatuses.STARTED)
+
+      val entity = OsmEntities.withName(req.entity)
+      entity match {
+        case OsmEntities.BIN =>
+          /*
+           * Retrieve OSM waste bin interface
+           * and execute the extraction job
+           */
+          val api = OsmBinsApi.getInstance
+          api.extract(job)
+
+        case _ => /* Do nothing */
+      }
 
   }
 }

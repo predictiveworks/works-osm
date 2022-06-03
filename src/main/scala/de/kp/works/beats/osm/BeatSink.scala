@@ -41,14 +41,14 @@ object BeatOutputs extends Enumeration {
 trait BeatSink extends Actor {
 
   override def receive: Receive = {
-    case request:BeatRequest =>
-      execute(request)
+    case sensor:BeatSensor =>
+      execute(sensor)
 
     case _ =>
       throw new Exception(s"A `BeatSink` supports sensor messages only")
   }
 
-  def execute(request:BeatRequest):Unit
+  def execute(sensor:BeatSensor):Unit
 
 }
 /**

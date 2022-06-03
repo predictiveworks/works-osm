@@ -19,8 +19,7 @@ package de.kp.works.beats.osm.extract
  *
  */
 
-import com.google.gson.JsonObject
-import de.kp.works.beats.osm.{BeatJob, BeatJobs}
+import de.kp.works.beats.osm.OsmEntities
 import de.kp.works.beats.osm.extract.functions.query_match
 import de.kp.works.beats.osm.h3.H3Utils
 import org.apache.spark.sql.functions.{col, struct, udf}
@@ -28,15 +27,15 @@ import org.apache.spark.sql.{BeatSession, DataFrame, Row, SparkSession}
 
 import scala.collection.mutable
 
-object OsmBinsApi {
+object OsmRecyclingApi {
 
   private val session = BeatSession.getSession
-  private var instance:Option[OsmBins] = None
+  private var instance:Option[OsmRecycling] = None
 
-  def getInstance:OsmBins = {
+  def getInstance:OsmRecycling = {
 
     if (instance.isEmpty)
-      instance = Some(new OsmBins(session))
+      instance = Some(new OsmRecycling(session))
 
     instance.get
 
@@ -45,35 +44,17 @@ object OsmBinsApi {
 }
 
 /**
- * [OsmBins] is responsible for extracting waste bins
+ * [OsmRecycling] is responsible for extracting waste bins
  * from the configured OSM dataset.
  *
  * A [Bin] is a certain OSM entity or sensor that
  * is supported by the OsmBeat
  */
-class OsmBins(session:SparkSession) extends OsmExtract(session) {
+class OsmRecycling(session:SparkSession) extends OsmExtract(session) {
 
-  private val H3_RESOLUTION = 7
+  private val ENTITY = OsmEntities.RECYCLING
 
-  def extract(job:BeatJob):Unit = {
-    /*
-     * STEP #1: Register the provided extraction
-     * job to support job related get requests
-     */
-    BeatJobs.register(job)
-    /*
-     * STEP #2: Retrieve OSM waste bins from
-     * the specified OSM dataset
-     */
-    val dataframe = build
-    /*
-     * STEP #3: Send extracted dataframe to
-     * the configured output channels
-     */
-    // TODO
-  }
-
-  def build:DataFrame = {
+  override def build:DataFrame = {
     /*
      * Load all nodes of the specified OSM dataset
      */
@@ -82,38 +63,73 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
      * Extract recycling container, and thereby leverage
      * the OSM tag specification
      */
-    var query = Map("amenity" -> "recycling")
-    var bins = nodes.filter(query_match(query)(col(TAGS)))
+    var query = Map("amenity" -> ENTITY.toString)
+    var dataset = nodes.filter(query_match(query)(col(TAGS)))
 
     query = Map("recycling_type" -> "container")
-    bins = bins.filter(query_match(query)(col(TAGS)))
+    dataset = dataset.filter(query_match(query)(col(TAGS)))
     /*
      * Curated list of materials that can be collected
      * by a certain waste bin; The list is extracted
      * from OSM node tags.
      */
     val materials = Seq(
+      "recycling:animal_waste",
+      "recycling:aluminium",
       "recycling:batteries",
       "recycling:beverage_cartons",
+      "recycling:bicycles",
       "recycling:books",
       "recycling:cans",
+      "recycling:car_batteries",
       "recycling:cardboard",
       "recycling:cartons",
+      "recycling:cds",
+      "recycling:christmas_trees",
       "recycling:clothes",
+      "recycling:computers",
+      "recycling:cooking_oil",
+      "recycling:cork",
+      "recycling:drugs",
       "recycling:electrical_appliances",
+      "recycling:engine_oil",
+      "recycling:fluorescent_tubes",
+      "recycling:foil",
+      "recycling:gas_bottles",
+      "recycling:garden_waste",
       "recycling:glass",
       "recycling:glass_bottles",
       "recycling:green_waste",
+      "recycling:hardcore",
+      "recycling:low_energy_bulbs",
       "recycling:magazines",
+      "recycling:mobile_phones",
+      "recycling:music",
       "recycling:newspaper",
       "recycling:organic",
+      "recycling:paint",
       "recycling:paper",
+      "recycling:paper_packaging",
+      "recycling:plasterboard",
       "recycling:plastic",
+      "recycling:plastic_bags",
+      "recycling:plastic_bottles",
       "recycling:plastic_packaging",
+      "recycling:polyester",
+      "recycling:printer_cartridges",
+      "recycling:rubble",
       "recycling:scrap_metal",
+      "recycling:sheet_metal",
       "recycling:shoes",
-      "recycling:waste")
-
+      "recycling:small_appliances",
+      "recycling:small_electrical_appliances",
+      "recycling:styrofoam",
+      "recycling:tyres",
+      "recycling:waste",
+      "recycling:waste_oil",
+      "recycling:white_goods",
+      "recycling:wood"
+    )
     /*
      * Transform `tags` into a Map[String,String] and
      * thereby harmonize the respective attributes
@@ -149,10 +165,7 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
       attributes
     })
 
-    val cols = Seq(ID, LATITUDE, LONGITUDE, H3, TAGS)
-    val selCols = cols.map(col)
-
-    bins = bins
+    dataset = dataset
       /*
        * Assign H3 Index to geospatial coordinate
        * to facilitate geo search and more
@@ -165,55 +178,17 @@ class OsmBins(session:SparkSession) extends OsmExtract(session) {
       .withColumn(TAGS, attributes_udf(materials)(col(TAGS)))
 
     /*
-     * Prepare for NGSI entity representation
-     */
-    val json_def = udf((row:Row) => {
-
-      val json = new JsonObject
-      json.addProperty("id", s"beat:osm:bin:${row.getLong(0)}")
-      json.addProperty("type", "bin")
-
-      val lat = new JsonObject
-      lat.addProperty("type", "Double")
-      lat.addProperty("value", row.getDouble(1))
-
-      json.add("latitude", lat)
-
-      val lon = new JsonObject
-      lon.addProperty("type", "Double")
-      lon.addProperty("value", row.getDouble(2))
-
-      json.add("longitude", lon)
-
-      val h3 = new JsonObject
-      h3.addProperty("type", "Long")
-      h3.addProperty("value", row.getLong(3))
-
-      json.add("index", h3)
-
-      val tags = row.getAs[Map[String,Int]](4)
-      tags.foreach{case(k,v) =>
-        val tag = new JsonObject
-        tag.addProperty("type", "Integer")
-        tag.addProperty("value", v)
-
-        json.add(k, tag)
-      }
-
-      json.toString
-
-    })
-    /*
      * Transform OSM nodes into an NGSI compliant entity
      * representation; the raw columns are finally removed
      */
-    bins = bins
-      .select(selCols:_*)
-      .withColumn(JSON, json_def(struct(selCols: _*)))
-      .drop(cols:_*)
+    dataset = dataset
+      .select(SELCOLS:_*)
+      .withColumn(JSON, OsmTransform.transform(ENTITY)(struct(SELCOLS: _*)))
+      .drop(COLS:_*)
 
-    bins
+    dataset
 
   }
 
+  override def publish(dataset:DataFrame):Unit = ???
 }

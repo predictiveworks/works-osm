@@ -1,4 +1,4 @@
-package de.kp.works.beats.osm
+package de.kp.works.beats.osm.extract
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,13 +19,10 @@ package de.kp.works.beats.osm
  *
  */
 
-object OsmEntities extends Enumeration {
+import org.apache.spark.sql.DataFrame
 
-  type OsmEntity = Value
+trait OsmPublisher {
 
-  val BUS_STATION:OsmEntity      = Value(1, "bus_station")
-  val BUS_STOP:OsmEntity         = Value(2, "bus_stop")
-  val CHARGING_STATION:OsmEntity = Value(3, "charging_station")
-  val RECYCLING:OsmEntity        = Value(4, "recycling")
+  def publish(dataset:DataFrame):Unit
 
 }

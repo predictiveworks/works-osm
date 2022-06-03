@@ -1,4 +1,4 @@
-package de.kp.works.beats.osm
+package de.kp.works.beats.osm.extract
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,13 +19,33 @@ package de.kp.works.beats.osm
  *
  */
 
-object OsmEntities extends Enumeration {
+import de.kp.works.beats.osm.OsmEntities
+import org.apache.spark.sql.{BeatSession, DataFrame, SparkSession}
 
-  type OsmEntity = Value
+object OsmBusStopApi {
 
-  val BUS_STATION:OsmEntity      = Value(1, "bus_station")
-  val BUS_STOP:OsmEntity         = Value(2, "bus_stop")
-  val CHARGING_STATION:OsmEntity = Value(3, "charging_station")
-  val RECYCLING:OsmEntity        = Value(4, "recycling")
+  private val session = BeatSession.getSession
+  private var instance:Option[OsmBusStop] = None
+
+  def getInstance:OsmBusStop = {
+
+    if (instance.isEmpty)
+      instance = Some(new OsmBusStop(session))
+
+    instance.get
+
+  }
+
+}
+class OsmBusStop(session:SparkSession) extends OsmExtract(session) {
+
+  private val ENTITY = OsmEntities.BUS_STOP
+
+  override def build: DataFrame =
+    basicWithQuery(ENTITY, Map("highway" -> ENTITY.toString))
+
+  override def publish(dataset: DataFrame): Unit = {
+
+  }
 
 }

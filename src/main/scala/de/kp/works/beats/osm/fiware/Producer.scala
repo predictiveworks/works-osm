@@ -19,10 +19,9 @@ package de.kp.works.beats.osm.fiware
  *
  */
 
-import de.kp.works.beats.osm.BeatActions.{CREATE, UPDATE}
-import de.kp.works.beats.osm.{BeatRequest, BeatSensor, BeatSink}
 import de.kp.works.beats.osm.conf.BeatConf
 import de.kp.works.beats.osm.http.HttpConnect
+import de.kp.works.beats.osm.{BeatSensor, BeatSink}
 /**
  * Base output channel to a FIWARE Context Broker;
  * this producer leverages the Broker REST API to
@@ -53,26 +52,7 @@ abstract class Producer[T <: BeatConf](options:Options[T])
   if (httpsContext.nonEmpty)
     setHttpsContext(httpsContext.get)
 
-  override def execute(request: BeatRequest): Unit = {
-
-    request.action match {
-      case CREATE =>
-        createSensor(request.sensor)
-
-      case UPDATE =>
-        updateSensor(request.sensor)
-
-      case _ => /* Do nothing */
-    }
-
-  }
-
-  /**
-   * A public method to create a certain sensor
-   * entity. The expected HTTP response code of
-   * this POST request = 201 Created.
-   */
-  def createSensor(sensor:BeatSensor):Boolean = {
+  override def execute(sensor: BeatSensor): Unit = {
     /*
      * STEP #1: Check whether the provided sensor
      * already exists; if this is the case, switch
@@ -84,26 +64,6 @@ abstract class Producer[T <: BeatConf](options:Options[T])
      * STEP #2: Create a non-existing sensor
      */
     postSensor(sensor)
-  }
-  /**
-   * A public method to update the attributes of
-   * a certain sensor entity. The expected HTTP
-   * response code of this PATCH request = 204
-   * No Content.
-   */
-  def updateSensor(sensor:BeatSensor):Boolean = {
-    /*
-     * STEP #1: Check whether the provided sensor
-     * already exists; if this is the case, switch
-     * to create request.
-     */
-    if (!sensorExists(sensor))
-      postSensor(sensor)
-    /*
-     * STEP #2: Update attributes of an existing
-     * sensor
-     */
-    patchSensor(sensor)
   }
   /**
    * Internal method to update a sensor without
